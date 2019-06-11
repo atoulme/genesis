@@ -23,7 +23,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-peer"
 	log "github.com/sirupsen/logrus"
 	"github.com/whiteblock/genesis/db"
 	"github.com/whiteblock/genesis/protocols/helpers"
@@ -105,6 +105,15 @@ func build(tn *testnet.TestNet) error {
 			contract = obj.(string)
 		}
 
+		var numValidators int
+		obj = tn.CombinedDetails.Params["numValidators"]
+		if obj != nil && reflect.TypeOf(obj).Kind() == reflect.Int {
+			numValidators = obj.(int)
+		}
+		if numValidators == 0 {
+			numValidators = 8
+		}
+
 		var validatorsPassword string
 		obj = tn.CombinedDetails.Params["validatorsPassword"]
 		if obj != nil && reflect.TypeOf(obj).Kind() == reflect.String {
@@ -124,14 +133,14 @@ func build(tn *testnet.TestNet) error {
 			return util.LogError(err)
 		}
 
-		for i := 1; i <= 8; i++ {
+		for i := 1; i <= numValidators; i++ {
 			_, err = client.DockerExecd(node, fmt.Sprintf("/validator accounts create --password %s --keystore-path %s/key%d-%d", validatorsPassword, logFolder, node.GetRelativeNumber(), i))
 			if err != nil {
 				return util.LogError(err)
 			}
 		}
 
-		for i := 1; i <= 8; i++ {
+		for i := 1; i <= numValidators; i++ {
 			_, err = client.DockerExecd(node, fmt.Sprintf("bash -c \"/validator --password %s --keystore-path %s/key%d-%d 2>&1 --monitoring-port 10%d%d| tee %s/validator%d-%d.log\"", validatorsPassword, logFolder, node.GetRelativeNumber(), i, node.GetRelativeNumber(), i, logFolder, node.GetRelativeNumber(), i))
 			if err != nil {
 				return util.LogError(err)
